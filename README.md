@@ -1,6 +1,6 @@
-# LocalSend Enhanced
+# LocalSend Unbullied
 
-> A fork of [LocalSend](https://github.com/localsend/localsend) with additional features for cross-platform compatibility.
+> Android, unbullied by iOS. A fork of [LocalSend](https://github.com/localsend/localsend) that fixes cross-platform pain points.
 
 ## Fork Enhancements
 
@@ -25,8 +25,8 @@ Creates a local Wi-Fi hotspot for file transfers when no shared network is avail
 
 ---
 
-[ci-badge]: https://github.com/jiaton/localsend/actions/workflows/ci.yml/badge.svg
-[ci-workflow]: https://github.com/jiaton/localsend/actions/workflows/ci.yml
+[ci-badge]: https://github.com/jiaton/localsend-unbullied/actions/workflows/ci.yml/badge.svg
+[ci-workflow]: https://github.com/jiaton/localsend-unbullied/actions/workflows/ci.yml
 [translate-badge]: https://hosted.weblate.org/widget/localsend/app/svg-badge.svg
 [translate-link]: https://hosted.weblate.org/engage/localsend/
 [packaging-badge]: https://repology.org/badge/tiny-repos/localsend.svg

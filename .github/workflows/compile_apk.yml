@@ -65,11 +65,11 @@ jobs:
 
       - name: Build APK
         working-directory: ${{ env.APK_BUILD_DIR }}/app
-        run: flutter build apk --debug
+        run: flutter build apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v6
         with:
           name: apk-result
           path: |
-            ${{ env.APK_BUILD_DIR }}/app/build/app/outputs/flutter-apk/app-debug.apk
+            ${{ env.APK_BUILD_DIR }}/app/build/app/outputs/flutter-apk/app-release.apk

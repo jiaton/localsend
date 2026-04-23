@@ -223,12 +223,16 @@ class MainActivity : FlutterActivity() {
                     bitmap.recycle()
                 }
 
-                // Step 3: Write JPG to cache, copy EXIF, then move to final location
+                // Step 3: Write JPG and copy EXIF
                 val baseName = path.substringAfterLast('/').substringBeforeLast('.').let {
                     java.net.URLDecoder.decode(it, "UTF-8").substringAfterLast('/')
                 }
-                val tmpFile = File(cacheDir, "$baseName.jpg.tmp")
-                val jpgCacheFile = File(cacheDir, "$baseName.jpg")
+
+                // For filesystem paths, write directly next to original (same mount).
+                // For content URIs, use cache dir as working space.
+                val jpgDir = if (isContentUri) File(cacheDir) else File(path).parentFile!!
+                val tmpFile = File(jpgDir, "$baseName.jpg.tmp")
+                val jpgFile = File(jpgDir, "$baseName.jpg")
 
                 try {
                     FileOutputStream(tmpFile).use { out ->
@@ -244,7 +248,7 @@ class MainActivity : FlutterActivity() {
                         exifDest.saveAttributes()
                     }
 
-                    if (!tmpFile.renameTo(jpgCacheFile)) {
+                    if (!tmpFile.renameTo(jpgFile)) {
                         tmpFile.delete()
                         runOnUiThread { result.error("RENAME_FAILED", "Failed to rename temp file", null) }
                         return@Thread
@@ -257,25 +261,11 @@ class MainActivity : FlutterActivity() {
                         File(path).delete()
                     }
 
-                    if (isContentUri) {
-                        // For SAF destinations, return the cache path — caller can access it directly
-                        runOnUiThread { result.success(jpgCacheFile.absolutePath) }
-                    } else {
-                        // For filesystem paths, move to same directory as original
-                        val finalFile = File(path.substringBeforeLast('.') + ".jpg")
-                        if (jpgCacheFile.renameTo(finalFile)) {
-                            runOnUiThread { result.success(finalFile.absolutePath) }
-                        } else {
-                            // rename across filesystems — copy and delete
-                            jpgCacheFile.copyTo(finalFile, overwrite = true)
-                            jpgCacheFile.delete()
-                            runOnUiThread { result.success(finalFile.absolutePath) }
-                        }
-                    }
+                    runOnUiThread { result.success(jpgFile.absolutePath) }
                 } catch (e: Exception) {
                     finalBitmap.recycle()
                     tmpFile.delete()
-                    jpgCacheFile.delete()
+                    jpgFile.delete()
                     runOnUiThread { result.error("WRITE_FAILED", e.message, null) }
                 }
             } catch (e: Exception) {

@@ -1049,6 +1049,9 @@ class TranslationsSettingsTabReceiveEn {
 
   /// en: 'Save to history'
   String get saveToHistory => 'Save to history';
+
+  /// en: 'Auto-convert HEIC to JPG'
+  String get autoConvertHeic => 'Auto-convert HEIC to JPG';
 }
 
 // Path: settingsTab.send

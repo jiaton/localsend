@@ -6,6 +6,7 @@ import 'package:localsend_app/pages/home_page_controller.dart';
 import 'package:localsend_app/pages/receive_history_page.dart';
 import 'package:localsend_app/pages/tabs/receive_tab_vm.dart';
 import 'package:localsend_app/provider/animation_provider.dart';
+import 'package:localsend_app/provider/hotspot_provider.dart';
 import 'package:localsend_app/util/ip_helper.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 import 'package:localsend_app/widget/animations/initial_fade_transition.dart';
@@ -173,9 +174,17 @@ class _CornerButtons extends StatelessWidget {
               AnimatedOpacity(
                 opacity: showHistoryButton ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: CustomIconButton(
-                  onPressed: () => HotspotDialog.open(context),
-                  child: const Icon(Icons.wifi_tethering),
+                child: Consumer(
+                  builder: (context, ref) {
+                    final isActive = ref.watch(hotspotProvider).status == HotspotStatus.active;
+                    return CustomIconButton(
+                      onPressed: () => HotspotDialog.toggle(context),
+                      child: Icon(
+                        Icons.wifi_tethering,
+                        color: isActive ? Theme.of(context).colorScheme.primary : null,
+                      ),
+                    );
+                  },
                 ),
               ),
             if (!showAdvanced)

@@ -228,11 +228,9 @@ class MainActivity : FlutterActivity() {
                     java.net.URLDecoder.decode(it, "UTF-8").substringAfterLast('/')
                 }
 
-                // For filesystem paths, write directly next to original (same mount).
-                // For content URIs, use cache dir as working space.
-                val jpgDir = if (isContentUri) File(cacheDir) else File(path).parentFile!!
-                val tmpFile = File(jpgDir, "$baseName.jpg.tmp")
-                val jpgFile = File(jpgDir, "$baseName.jpg")
+                // Always write to cache first for EXIF manipulation, then move to final location
+                val tmpFile = File(cacheDir, "$baseName.jpg.tmp")
+                val jpgCacheFile = File(cacheDir, "$baseName.jpg")
 
                 try {
                     FileOutputStream(tmpFile).use { out ->
@@ -248,24 +246,58 @@ class MainActivity : FlutterActivity() {
                         exifDest.saveAttributes()
                     }
 
-                    if (!tmpFile.renameTo(jpgFile)) {
+                    if (!tmpFile.renameTo(jpgCacheFile)) {
                         tmpFile.delete()
                         runOnUiThread { result.error("RENAME_FAILED", "Failed to rename temp file", null) }
                         return@Thread
                     }
 
-                    // Delete original
                     if (isContentUri) {
-                        try { DocumentsContract.deleteDocument(contentResolver, Uri.parse(path)) } catch (_: Exception) {}
-                    } else {
-                        File(path).delete()
-                    }
+                        // Write JPG back to SAF destination
+                        val originalUri = Uri.parse(path)
+                        val parentUri = DocumentsContract.buildDocumentUriUsingTree(
+                            originalUri,
+                            DocumentsContract.getTreeDocumentId(originalUri)
+                        )
+                        // Try to get parent from the document path
+                        val docId = DocumentsContract.getDocumentId(originalUri)
+                        val parentDocId = if (docId.contains('/')) {
+                            docId.substringBeforeLast('/')
+                        } else {
+                            DocumentsContract.getTreeDocumentId(originalUri)
+                        }
+                        val parentDocUri = DocumentsContract.buildDocumentUriUsingTree(originalUri, parentDocId)
 
-                    runOnUiThread { result.success(jpgFile.absolutePath) }
+                        val newDocUri = DocumentsContract.createDocument(
+                            contentResolver, parentDocUri, "image/jpeg", "$baseName.jpg"
+                        )
+                        if (newDocUri != null) {
+                            contentResolver.openOutputStream(newDocUri)?.use { out ->
+                                jpgCacheFile.inputStream().use { input -> input.copyTo(out) }
+                            }
+                            // Delete original HEIC
+                            try { DocumentsContract.deleteDocument(contentResolver, originalUri) } catch (_: Exception) {}
+                            jpgCacheFile.delete()
+                            runOnUiThread { result.success(newDocUri.toString()) }
+                        } else {
+                            // Fallback: return cache path
+                            try { DocumentsContract.deleteDocument(contentResolver, originalUri) } catch (_: Exception) {}
+                            runOnUiThread { result.success(jpgCacheFile.absolutePath) }
+                        }
+                    } else {
+                        // Filesystem path: move from cache to same directory as original
+                        val finalFile = File(File(path).parent, "$baseName.jpg")
+                        if (!jpgCacheFile.renameTo(finalFile)) {
+                            jpgCacheFile.copyTo(finalFile, overwrite = true)
+                            jpgCacheFile.delete()
+                        }
+                        File(path).delete()
+                        runOnUiThread { result.success(finalFile.absolutePath) }
+                    }
                 } catch (e: Exception) {
                     finalBitmap.recycle()
                     tmpFile.delete()
-                    jpgFile.delete()
+                    jpgCacheFile.delete()
                     runOnUiThread { result.error("WRITE_FAILED", e.message, null) }
                 }
             } catch (e: Exception) {

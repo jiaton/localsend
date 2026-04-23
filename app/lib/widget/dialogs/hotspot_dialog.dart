@@ -9,20 +9,23 @@ import 'package:routerino/routerino.dart';
 class HotspotDialog extends StatelessWidget {
   const HotspotDialog();
 
-  static Future<void> open(BuildContext context) async {
+  /// Toggles hotspot: starts and shows dialog if off, stops if active.
+  static Future<void> toggle(BuildContext context) async {
+    final hotspot = context.ref.read(hotspotProvider);
+    if (hotspot.status == HotspotStatus.active) {
+      await context.ref.notifier(hotspotProvider).stop();
+      return;
+    }
+
     final started = await context.ref.notifier(hotspotProvider).start();
-    if (!started) {
-      if (context.mounted) {
-        final error = context.ref.read(hotspotProvider).error ?? t.travelMode.error;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
-      }
+    if (!started && context.mounted) {
+      final error = context.ref.read(hotspotProvider).error ?? t.travelMode.error;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     if (context.mounted) {
       await showDialog(context: context, builder: (_) => const HotspotDialog());
-      // Stop hotspot when dialog is dismissed
-      // ignore: use_build_context_synchronously
-      context.ref.notifier(hotspotProvider).stop();
+      // Dialog dismissed — hotspot keeps running
     }
   }
 
@@ -67,8 +70,15 @@ class HotspotDialog extends StatelessWidget {
       ),
       actions: [
         TextButton(
+          onPressed: () async {
+            await context.ref.notifier(hotspotProvider).stop();
+            if (context.mounted) context.pop();
+          },
+          child: Text(t.travelMode.stop, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ),
+        TextButton(
           onPressed: () => context.pop(),
-          child: Text(t.travelMode.stop),
+          child: Text(t.general.close),
         ),
       ],
     );

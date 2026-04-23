@@ -19,7 +19,7 @@ class HotspotState {
 
 final hotspotProvider = NotifierProvider<HotspotService, HotspotState>((ref) => HotspotService());
 
-class HotspotService extends PureNotifier<HotspotState> {
+class HotspotService extends Notifier<HotspotState> {
   @override
   HotspotState init() => const HotspotState();
 
@@ -54,9 +54,7 @@ class HotspotService extends PureNotifier<HotspotState> {
     _logger.info('Hotspot started: SSID=${result.ssid}');
 
     // Refresh network interfaces so multicast discovery picks up the new interface
-    ensureRef((ref) {
-      ref.redux(localIpProvider).dispatchAsync(FetchLocalIpAction());
-    });
+    ref.redux(localIpProvider).dispatchAsync(FetchLocalIpAction());
 
     return true;
   }
@@ -66,8 +64,6 @@ class HotspotService extends PureNotifier<HotspotState> {
     state = const HotspotState();
     _logger.info('Hotspot stopped');
 
-    ensureRef((ref) {
-      ref.redux(localIpProvider).dispatchAsync(FetchLocalIpAction());
-    });
+    ref.redux(localIpProvider).dispatchAsync(FetchLocalIpAction());
   }
 }
